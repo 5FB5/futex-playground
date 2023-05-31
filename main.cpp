@@ -40,7 +40,7 @@ void futexWakeBlock(int *addr)
     while(1)
     {
         int futexRc = static_cast<int>(syscall(SYS_futex, addr, FUTEX_WAKE, 1, nullptr, nullptr, 0));
-        
+
         if (futexRc > 0)
             return;
     }
@@ -48,13 +48,12 @@ void futexWakeBlock(int *addr)
 
 void doSomething()
 {
-    std::cout << "{ChildThread} [doSomething]: Wait for 5" << std::endl;
+    std::cout << "\n{ChildThread} [doSomething]: Wait for 5" << std::endl;
     futexWaitValue(myTestNumber, 5);
 
     std::cout << "{ChildThread} [doSomething]: I got 5! Writing 10..." << std::endl;
 
     *myTestNumber = 10;
-    std::cout << "{ChildThread} [doSomething]: number = " << *myTestNumber << std::endl;
 
     // Give a signal that we've changed the number
     futexWakeBlock(myTestNumber);
@@ -66,7 +65,7 @@ int main()
 {
     std::thread myThread(doSomething);
 
-    std::cout << "\n{MainThread} [main]: Changing number to 5..." << std::endl;
+    std::cout << "{MainThread} [main]: Changing number to 5..." << std::endl;
     *myTestNumber = 5;
 
     futexWakeBlock(myTestNumber);
@@ -75,9 +74,9 @@ int main()
     futexWaitValue(myTestNumber, 10);
 
     if (*myTestNumber == 10)
-        std::cout << "\nOMG, futex works!!!" << std::endl;
+        std::cout << "\n{MainThread} [main]: I got 10! OMG, futex works!!!" << std::endl;
     else
-        std::cout << "\nNo, futex doesn't work, you're moron (number = " << *myTestNumber << ")" << std::endl;
+        std::cout << "\n{MainThread} [main]: No, futex doesn't work, you're moron (number = " << *myTestNumber << ")" << std::endl;
 
     myThread.join();
     return 0;
