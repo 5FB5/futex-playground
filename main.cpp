@@ -21,17 +21,25 @@
 
 int *myTestNumber = new int(0);
 
-void futexWaitValue(int *futexAddr, int valueToBlock)
+static int futex(int *uaddr, int futex_op, int val, const struct timespec *timeout, int *uaddr2, int val3)
 {
-    while(1)
-    {
-        int futexRc = static_cast<int>(syscall(SYS_futex, futexAddr, FUTEX_WAIT, valueToBlock, nullptr, nullptr, 0));
+    return syscall(SYS_futex, uaddr, futex_op, val, timeout, uaddr, val3);
+}
 
-        if (futexRc == FUTEX_OP_CMP_EQ)
+int futexWaitValue(int *futexAddr, int valueToBlock)
+{
+    int futex_rc = 0;
+    while (1)
+    {
+        futex_rc = futex(futexAddr, FUTEX_WAIT, valueToBlock, nullptr, nullptr, 0);
+        if (futex_rc == -1)
         {
-            if (*futexAddr == valueToBlock)
-                return;
+            if(errno != EAGAIN)
+                return -1;
         }
+        else
+            return futex_rc;
+
     }
 }
 
@@ -39,9 +47,9 @@ void futexWakeBlock(int *addr)
 {
     while(1)
     {
-        int futexRc = static_cast<int>(syscall(SYS_futex, addr, FUTEX_WAKE, 1, nullptr, nullptr, 0));
+        int futexResponseCode = futex(addr, FUTEX_WAKE, 1, nullptr, nullptr, 0);
 
-        if (futexRc > 0)
+        if (futexResponseCode > 0)
             return;
     }
 }
@@ -65,7 +73,7 @@ int main()
 {
     std::thread myThread(doSomething);
 
-    std::cout << "{MainThread} [main]: Changing number to 5..." << std::endl;
+    std::cout << "\n{MainThread} [main]: Changing number to 5..." << std::endl;
     *myTestNumber = 5;
 
     futexWakeBlock(myTestNumber);
